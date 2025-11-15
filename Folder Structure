@@ -24,3 +24,10 @@ animexa-ai/
 ├── README.md
 ├── SECURITY.md
 └── .env.example
+animexa/
+ ├── app/
+ │    └── page.js
+ ├── package.json
+ ├── next.config.js
+ └── public/
+      └── favicon.ico
