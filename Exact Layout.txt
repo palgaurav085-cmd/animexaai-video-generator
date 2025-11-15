@@ -1,0 +1,15 @@
+animexaai-video-generator/
+│
+├── app/
+│   ├── api/
+│   │   └── generate-video/
+│   │       └── route.js
+│   ├── globals.css
+│   └── page.js
+│
+├── public/
+│   └── logo.png   (optional, blank chalega)
+│
+├── package.json
+├── next.config.js
+└── README.md
