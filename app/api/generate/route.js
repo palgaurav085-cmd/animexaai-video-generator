@@ -1,29 +1,16 @@
-import { NextResponse } from "next/server";
+import Replicate from "replicate";
 
 export async function POST(req) {
-  try {
-    const { prompt } = await req.json();
+  const { prompt } = await req.json();
 
-    const response = await fetch("https://api.replicate.com/v1/predictions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Token ${process.env.REPLICATE_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        version: "e23d4c7d93085db8...", // ← model ID (next step me duunga)
-        input: {
-          prompt: prompt
-        }
-      })
-    });
+  const replicate = new Replicate({
+    auth: process.env.REPLICATE_API_KEY,
+  });
 
-    const prediction = await response.json();
+  const prediction = await replicate.predictions.create({
+    version: "YOUR_MODEL_VERSION_ID",
+    input: { prompt }
+  });
 
-    return NextResponse.json({ prediction }, { status: 200 });
-
-  } catch (error) {
-    console.log("API ERROR:", error);
-    return NextResponse.json({ error: "Failed to generate video" }, { status: 500 });
-  }
+  return Response.json({ id: prediction.id });
 }
