@@ -1,7 +1,8 @@
 "use client";
+
 import { useState } from "react";
 
-export default function Generate() {
+export default function GeneratePage() {
   const [script, setScript] = useState("");
   const [loading, setLoading] = useState(false);
   const [videoUrl, setVideoUrl] = useState(null);
@@ -10,74 +11,77 @@ export default function Generate() {
     setLoading(true);
     setVideoUrl(null);
 
-    // dummy wait (later API add karenge)
-    setTimeout(() => {
-      setVideoUrl("https://samplelib.com/lib/preview/mp4/sample-5s.mp4");
-      setLoading(false);
-    }, 2000);
+    // Start generation
+    const start = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: script })
+    });
+
+    const { id } = await start.json();
+
+    let finished = false;
+    let output = null;
+
+    while (!finished) {
+      await new Promise(r => setTimeout(r, 2000));
+
+      const check = await fetch("/api/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id })
+      });
+
+      const result = await check.json();
+
+      if (result.status === "succeeded") {
+        finished = true;
+        output = result.output?.[0];
+      }
+
+      if (result.status === "failed") {
+        finished = true;
+        output = null;
+      }
+    }
+
+    setLoading(false);
+    setVideoUrl(output);
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        padding: "40px 20px",
-        background: "#0A0F24",
-        color: "white",
-        fontFamily: "Arial",
-      }}
-    >
-      <h1 style={{ textAlign: "center", marginBottom: "25px", fontSize: "38px" }}>
-        🎬 AI Animation Generator
-      </h1>
+    <div style={{ padding: "40px", maxWidth: "800px", margin: "auto" }}>
+      <h1>Generate Animation Video</h1>
 
-      <div style={{ maxWidth: "700px", margin: "0 auto" }}>
-        <textarea
-          value={script}
-          onChange={(e) => setScript(e.target.value)}
-          placeholder="Paste your script here…"
-          style={{
-            width: "100%",
-            height: "180px",
-            padding: "15px",
-            fontSize: "16px",
-            borderRadius: "10px",
-            border: "1px solid #444",
-            background: "#111727",
-            color: "white",
-            outline: "none",
-          }}
-        />
+      <textarea
+        placeholder="Paste your script here..."
+        value={script}
+        onChange={(e) => setScript(e.target.value)}
+        style={{ width: "100%", height: 150, padding: 10 }}
+      />
 
-        <button
-          onClick={generateVideo}
-          disabled={loading || !script.trim()}
-          style={{
-            marginTop: "20px",
-            width: "100%",
-            padding: "15px",
-            fontSize: "18px",
-            borderRadius: "8px",
-            backgroundColor: loading ? "#555" : "#00C2FF",
-            color: "#000",
-            fontWeight: "600",
-            cursor: loading ? "not-allowed" : "pointer",
-            boxShadow: "0px 0px 12px rgba(0, 194, 255, 0.4)",
-            transition: "0.3s",
-          }}
-        >
-          {loading ? "Generating…" : "🚀 Generate Animation"}
-        </button>
+      <button
+        onClick={generateVideo}
+        disabled={loading}
+        style={{
+          marginTop: 20,
+          padding: "12px 25px",
+          background: "#0070f3",
+          color: "white",
+          borderRadius: 8
+        }}
+      >
+        {loading ? "Generating..." : "Generate Video"}
+      </button>
 
-        {videoUrl && (
-          <div style={{ marginTop: "30px", textAlign: "center" }}>
-            <h3>Your AI-Generated Video:</h3>
-            <video controls width="100%" style={{ borderRadius: "10px" }}>
-              <source src={videoUrl} type="video/mp4" />
-            </video>
-          </div>
-        )}
-      </div>
+      {videoUrl && (
+        <video
+          src={videoUrl}
+          controls
+          autoPlay
+          style={{ marginTop: 30, width: "100%", borderRadius: 10 }}
+        ></video>
+      )}
     </div>
   );
 }
