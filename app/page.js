@@ -1,41 +1,30 @@
-export default function HomePage() {
-  return (
-    <div
-      style={{
-        background: "#0A1437",
-        color: "white",
-        minHeight: "100vh",
-        padding: "60px 20px",
-        textAlign: "center",
-      }}
-    >
-      <h1 style={{ fontSize: "38px", marginBottom: "20px" }}>
-        Animexa AI — Create Full Animation Videos Instantly
-      </h1>
+const generateVideo = async () => {
+  setLoading(true);
+  setVideoUrl(null);
 
-      <p style={{ fontSize: "18px", opacity: 0.85, maxWidth: "800px", margin: "0 auto" }}>
-        Paste your script and let AI automatically generate a complete
-        animation video — characters, actions, voiceover, backgrounds,
-        and everything included.
-      </p>
+  const res = await fetch("/api/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt: script })
+  });
 
-      <a
-        href="/generate"
-        style={{
-          backgroundColor: "#00C2FF",
-          padding: "15px 25px",
-          display: "inline-block",
-          marginTop: "30px",
-          borderRadius: "8px",
-          fontWeight: "600",
-          textDecoration: "none",
-          color: "#000",
-          fontSize: "18px",
-          boxShadow: "0px 0px 12px rgba(0, 194, 255, 0.4)",
-        }}
-      >
-        🚀 Launch AI Video Generator
-      </a>
-    </div>
-  );
-}
+  const data = await res.json();
+
+  // Polling for output until ready
+  let prediction = data.prediction;
+
+  while (prediction.status !== "succeeded" && prediction.status !== "failed") {
+    await new Promise(r => setTimeout(r, 2000));
+
+    const check = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+      headers: {
+        "Authorization": `Token ${process.env.NEXT_PUBLIC_REPLICATE_API_KEY}`
+      }
+    });
+
+    prediction = await check.json();
+  }
+
+  setLoading(false);
+  setVideoUrl(prediction.output?.[0]);
+};
