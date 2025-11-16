@@ -1,13 +1,12 @@
-import Replicate from "replicate";
-
 export async function POST(req) {
   const { id } = await req.json();
 
-  const replicate = new Replicate({
-    auth: process.env.REPLICATE_API_KEY
+  const res = await fetch("https://animexa-worker.onrender.com/check", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id }),
   });
 
-  const prediction = await replicate.predictions.get(id);
-
-  return Response.json(prediction);
+  const data = await res.json();
+  return Response.json(data);
 }
