@@ -1,16 +1,12 @@
-import Replicate from "replicate";
-
 export async function POST(req) {
   const { prompt } = await req.json();
 
-  const replicate = new Replicate({
-    auth: process.env.REPLICATE_API_KEY,
+  const res = await fetch("https://animexa-worker.onrender.com/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt }),
   });
 
-  const prediction = await replicate.predictions.create({
-    version: "YOUR_MODEL_VERSION_ID",
-    input: { prompt }
-  });
-
-  return Response.json({ id: prediction.id });
+  const data = await res.json();
+  return Response.json(data);
 }
