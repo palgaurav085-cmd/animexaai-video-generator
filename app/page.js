@@ -1,3 +1,4 @@
+"use client";
 const generateVideo = async () => {
   setLoading(true);
   setVideoUrl(null);
