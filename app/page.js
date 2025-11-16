@@ -44,7 +44,8 @@ export default function Home() {
       </p>
 
       {/* CTA Button */}
-      <a href="/generate">
+      <a 
+        href="/generate">
 
         style={{
           backgroundColor: "#00C2FF",
