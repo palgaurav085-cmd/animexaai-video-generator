@@ -1,11 +1,14 @@
 export default function Home() {
   return (
-    <main style={{ padding: 40 }}>
-      <h1>Animexa AI is Live</h1>
-      <p>Your AI Video Generator is running successfully.</p>
-    </main>
+    <div style={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      height: '100vh',
+      fontSize: '32px',
+      fontWeight: 'bold'
+    }}>
+      Animexa AI is LIVE 🎉
+    </div>
   );
-}
-export default function Home() {
-  return <h1>Working 🎉</h1>;
 }
