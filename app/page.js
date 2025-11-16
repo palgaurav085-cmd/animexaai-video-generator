@@ -1,17 +1,3 @@
-export default function Home() {
-  return (
-    <div style={{ 
-      display: 'flex', 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      height: '100vh',
-      fontSize: '32px',
-      fontWeight: 'bold'
-    }}>
-      Animexa AI is LIVE 🎉
-    </div>
-  );
-}
 "use client";
 
 export default function Home() {
@@ -59,7 +45,7 @@ export default function Home() {
 
       {/* CTA Button */}
       <a
-        href="https://animexaai-video-generator.vercel.app/editor"
+        href="#"
         style={{
           backgroundColor: "#00C2FF",
           padding: "14px 32px",
@@ -74,46 +60,6 @@ export default function Home() {
       >
         🚀 Launch AI Video Generator
       </a>
-
-      {/* Features Section */}
-      <div
-        style={{
-          marginTop: "60px",
-          maxWidth: "800px",
-          width: "100%",
-        }}
-      >
-        <h2 style={{ fontSize: "30px", marginBottom: "25px" }}>
-          Why Animexa AI?
-        </h2>
-
-        <ul
-          style={{
-            listStyle: "none",
-            padding: 0,
-            fontSize: "18px",
-            lineHeight: "32px",
-            opacity: 0.9,
-          }}
-        >
-          <li>🎬 Full animation videos generated instantly</li>
-          <li>🗣️ AI voiceover with your selected tone</li>
-          <li>🧍 Add your custom character image</li>
-          <li>📜 Auto-created scenes from script</li>
-          <li>⚡ Fast rendering & easy download</li>
-        </ul>
-      </div>
-
-      {/* Footer */}
-      <div
-        style={{
-          marginTop: "80px",
-          opacity: 0.6,
-          fontSize: "14px",
-        }}
-      >
-        © {new Date().getFullYear()} Animexa AI — Powered by Next.js & Vercel
-      </div>
     </div>
   );
 }
