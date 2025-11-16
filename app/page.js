@@ -2,29 +2,40 @@ const generateVideo = async () => {
   setLoading(true);
   setVideoUrl(null);
 
-  const res = await fetch("/api/generate", {
+  // Start generation
+  const start = await fetch("/api/generate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt: script })
   });
 
-  const data = await res.json();
+  const { id } = await start.json();
 
-  // Polling for output until ready
-  let prediction = data.prediction;
+  let finished = false;
+  let output = null;
 
-  while (prediction.status !== "succeeded" && prediction.status !== "failed") {
+  while (!finished) {
     await new Promise(r => setTimeout(r, 2000));
 
-    const check = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
-      headers: {
-        "Authorization": `Token ${process.env.NEXT_PUBLIC_REPLICATE_API_KEY}`
-      }
+    const check = await fetch("/api/check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id })
     });
 
-    prediction = await check.json();
+    const result = await check.json();
+
+    if (result.status === "succeeded") {
+      finished = true;
+      output = result.output?.[0];
+    }
+
+    if (result.status === "failed") {
+      finished = true;
+      output = null;
+    }
   }
 
   setLoading(false);
-  setVideoUrl(prediction.output?.[0]);
+  setVideoUrl(output);
 };
