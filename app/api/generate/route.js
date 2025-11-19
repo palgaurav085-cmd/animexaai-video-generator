@@ -4,9 +4,10 @@ export async function POST(req) {
   const res = await fetch("https://animexa-worker.palgaurav085.workers.dev", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ script: prompt })
+    body: JSON.stringify({ prompt }),
   });
 
-  const data = await res.json();
-  return Response.json(data);
+  return new Response(await res.text(), {
+    headers: { "Content-Type": "application/json" },
+  });
 }
