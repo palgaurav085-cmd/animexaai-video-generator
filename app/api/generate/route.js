@@ -2,18 +2,10 @@ export async function POST(req) {
   try {
     const { prompt } = await req.json();
 
-    if (!prompt) {
-      return Response.json({ error: "Prompt is required" }, { status: 400 });
-    }
-
-    const WORKER_URL = "https://animexa-worker.palgaurav085.workers.dev/";
-
-    const res = await fetch(WORKER_URL, {
+    const res = await fetch("https://animexa-worker.palgaurav085.workers.dev/", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ prompt }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt })
     });
 
     const data = await res.json();
