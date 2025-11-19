@@ -6,8 +6,7 @@ export async function POST(req) {
       return Response.json({ error: "Prompt is required" }, { status: 400 });
     }
 
-    // --- YOUR CLOUDLARE WORKER URL ---
-    const WORKER_URL = "https://animexa-worker.palgaurav085.workers.dev/generate";
+    const WORKER_URL = "https://animexa-worker.palgaurav085.workers.dev/";
 
     const res = await fetch(WORKER_URL, {
       method: "POST",
