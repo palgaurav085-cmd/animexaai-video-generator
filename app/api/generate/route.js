@@ -1,20 +1,16 @@
 export async function POST(req) {
-  const { prompt } = await req.json();
+  try {
+    const { prompt } = await req.json();
 
-  // Step 1: create job
-  const createJob = await fetch(
-    "https://animexa-worker.palgaurav085.workers.dev/jobs",
-    {
+    const res = await fetch("https://animexa-worker.palgaurav085.workers.dev/", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-worker-secret": process.env.WORKER_SECRET,
-      },
-      body: JSON.stringify({ script: prompt }),
-    }
-  );
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt }),
+    });
 
-  const jobData = await createJob.json();
-
-  return Response.json({ id: jobData.jobId });
+    const data = await res.json();
+    return Response.json(data);
+  } catch (e) {
+    return Response.json({ error: e.message }, { status: 500 });
+  }
 }
