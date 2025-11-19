@@ -1,13 +1,20 @@
 export async function POST(req) {
   const { prompt } = await req.json();
 
-  const res = await fetch("https://animexa-worker.palgaurav085.workers.dev", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt }),
-  });
+  // Step 1: create job
+  const createJob = await fetch(
+    "https://animexa-worker.palgaurav085.workers.dev/jobs",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-worker-secret": process.env.WORKER_SECRET,
+      },
+      body: JSON.stringify({ script: prompt }),
+    }
+  );
 
-  return new Response(await res.text(), {
-    headers: { "Content-Type": "application/json" },
-  });
+  const jobData = await createJob.json();
+
+  return Response.json({ id: jobData.jobId });
 }
