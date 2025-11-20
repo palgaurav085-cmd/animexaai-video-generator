@@ -1,139 +1,122 @@
 "use client";
+export const runtime = "nodejs"; // IMPORTANT: Replicate needs Node runtime
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 
 export default function GeneratePage() {
-  const [text, setText] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [predictionId, setPredictionId] = useState(null);
-  const [status, setStatus] = useState(null);
-  const [videoUrl, setVideoUrl] = useState(null);
-  const [error, setError] = useState(null);
-  const pollRef = useRef(null);
+  const [prompt, setPrompt] = useState("");
+  const [status, setStatus] = useState("");
+  const [error, setError] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
 
-  useEffect(() => {
-    // cleanup on unmount
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, []);
-
-  const createJob = async () => {
-    if (!text.trim()) return alert("Enter a prompt");
-
-    setLoading(true);
-    setError(null);
-    setVideoUrl(null);
+  const generate = async () => {
+    setError("");
+    setVideoUrl("");
     setStatus("creating");
-    setPredictionId(null);
 
     try {
       const res = await fetch("/api/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: text, scenes: [text] })
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt,
+          scenes: [prompt]
+        })
       });
 
-      const data = await res.json();
-      setLoading(false);
-
-      if (data.error) {
-        setError(data.error);
-        return;
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error("API Error: " + text);
       }
 
-      setPredictionId(data.id);
-      setStatus(data.status || "starting");
-      // start polling
-      startPolling(data.id);
+      let data = await res.json();
+      const id = data.id;
+      setStatus("processing");
 
-    } catch (e) {
-      setLoading(false);
-      setError("Network error: " + e.message);
-    }
-  };
+      // Polling the status API
+      const pollStatus = async () => {
+        const statusRes = await fetch(`/api/status?id=${id}`);
+        const statusData = await statusRes.json();
 
-  const startPolling = (id) => {
-    if (pollRef.current) clearInterval(pollRef.current);
+        if (statusData.status === "succeeded") {
+          setVideoUrl(statusData.video_url);
+          setStatus("done");
+        } else if (statusData.status === "failed") {
+          setError("Video generation failed");
+          setStatus("");
+        } else {
+          setTimeout(pollStatus, 2500);
+        }
+      };
 
-    // poll immediately and then every 3s
-    (async () => await checkStatus(id))();
+      pollStatus();
 
-    pollRef.current = setInterval(() => {
-      checkStatus(id);
-    }, 3000);
-  };
-
-  const checkStatus = async (id) => {
-    try {
-      const res = await fetch(`/api/status?id=${encodeURIComponent(id)}`);
-      const data = await res.json();
-
-      if (data.error) {
-        setError(data.error);
-        setStatus("error");
-        if (pollRef.current) clearInterval(pollRef.current);
-        return;
-      }
-
-      setStatus(data.status || data?.state || "unknown");
-
-      if (data.status === "succeeded" && data.video_url) {
-        setVideoUrl(data.video_url);
-        if (pollRef.current) clearInterval(pollRef.current);
-      }
-
-      if (["failed", "canceled"].includes(data.status)) {
-        setError("Generation failed or canceled.");
-        if (pollRef.current) clearInterval(pollRef.current);
-      }
-
-    } catch (e) {
-      setError("Status check failed: " + e.message);
-      if (pollRef.current) clearInterval(pollRef.current);
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Something went wrong");
+      setStatus("");
     }
   };
 
   return (
-    <div style={{ padding: 40, minHeight: "100vh", background: "#0A1437", color: "#fff" }}>
-      <h1 style={{ fontSize: 32 }}>Generate Animation</h1>
+    <div style={{ padding: "40px", color: "white", background: "#07102C", minHeight: "100vh" }}>
+      <h1 style={{ fontSize: "32px", marginBottom: "20px" }}>Generate Animation</h1>
 
       <textarea
-        value={text}
-        onChange={e => setText(e.target.value)}
-        placeholder="A boy playing football with friends"
-        style={{ width: "100%", height: 160, padding: 12, marginTop: 16, fontSize: 16, borderRadius: 8 }}
+        value={prompt}
+        onChange={(e) => setPrompt(e.target.value)}
+        placeholder="Describe your animation..."
+        style={{
+          width: "100%",
+          height: "200px",
+          padding: "12px",
+          borderRadius: "8px",
+          fontSize: "16px",
+          color: "#000"
+        }}
       />
 
-      <div style={{ marginTop: 12 }}>
-        <button
-          onClick={createJob}
-          disabled={loading}
-          style={{ padding: "10px 18px", background: "#00C2FF", color: "#000", borderRadius: 8, fontWeight: 700 }}
-        >
-          {loading ? "Creating..." : "Generate"}
-        </button>
-      </div>
+      <button
+        onClick={generate}
+        style={{
+          marginTop: "20px",
+          padding: "10px 20px",
+          background: "#00AEEF",
+          color: "white",
+          borderRadius: "8px",
+          fontSize: "18px",
+          border: "none"
+        }}
+      >
+        Generate
+      </button>
 
-      <div style={{ marginTop: 20 }}>
-        {status && <div style={{ marginBottom: 10 }}>Status: <strong>{status}</strong></div>}
-        {predictionId && <div style={{ marginBottom: 10 }}>Job ID: {predictionId}</div>}
-        {error && <div style={{ background: "#7b243f", padding: 12, borderRadius: 8 }}>❌ {error}</div>}
-      </div>
+      {status && (
+        <p style={{ marginTop: "20px", fontSize: "18px" }}>
+          Status: <b>{status}</b>
+        </p>
+      )}
+
+      {error && (
+        <div
+          style={{
+            marginTop: "20px",
+            padding: "15px",
+            background: "#8B1E2A",
+            color: "white",
+            borderRadius: "6px"
+          }}
+        >
+          ❌ {error}
+        </div>
+      )}
 
       {videoUrl && (
-        <div style={{ marginTop: 20, background: "#ffffff14", padding: 20, borderRadius: 8 }}>
-          <h3>Your Video</h3>
-          <video controls style={{ width: "100%", maxWidth: 800 }}>
-            <source src={videoUrl} type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
-
-          <div style={{ marginTop: 12 }}>
-            <a href={videoUrl} download="generated.mp4" style={{ padding: "10px 16px", background: "#00FFB3", color: "#000", fontWeight: 700, borderRadius: 8, textDecoration: "none" }}>
-              ⬇ Download
-            </a>
-          </div>
+        <div style={{ marginTop: "30px" }}>
+          <h2>Generated Video:</h2>
+          <video src={videoUrl} controls style={{ width: "100%", borderRadius: "10px" }} />
         </div>
       )}
     </div>
