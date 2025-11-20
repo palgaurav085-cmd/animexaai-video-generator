@@ -1,84 +1,81 @@
 "use client";
+
 import { useState } from "react";
 
 export default function GeneratePage() {
-  const [prompt, setPrompt] = useState("");
+  const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
-  const [videoURL, setVideoURL] = useState(null);
-  const [scenes, setScenes] = useState([]);
+  const [result, setResult] = useState(null);
 
-  const generate = async () => {
-    if (!prompt.trim()) {
-      alert("Please type script");
-      return;
-    }
+  const handleGenerate = async () => {
+    if (!text.trim()) return alert("Please enter description");
+
     setLoading(true);
-    setVideoURL(null);
-    setScenes([]);
+    setResult(null);
 
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({
+          prompt: text,
+          scenes: [text]     // ← यह सबसे ज़रूरी लाइन है
+        }),
       });
 
       const data = await res.json();
+      setLoading(false);
 
       if (data.error) {
-        alert("Server Error: " + data.error);
-        setLoading(false);
+        alert(`Server Error: ${data.error}`);
         return;
       }
 
-      // Ensure scenes is array
-      const s = Array.isArray(data.scenes) ? data.scenes : (data.scenes ? [data.scenes] : []);
-      setScenes(s);
+      setResult(data);
 
-      // video may be string or object
-      const vid = typeof data.video === "string" ? data.video : (data.video?.url || null);
-      setVideoURL(vid);
-    } catch (err) {
-      alert("Network/Server failed: " + err.message);
-    } finally {
+    } catch (e) {
       setLoading(false);
+      alert("Something went wrong: " + e.message);
     }
   };
 
   return (
-    <div style={{ padding: 32, maxWidth: 800, margin: "auto" }}>
-      <h1>Generate Animation Video</h1>
+    <div style={{ padding: "40px", color: "#fff", background: "#0A1437", minHeight: "100vh" }}>
+      <h1 style={{ fontSize: "32px", marginBottom: "20px" }}>Generate Animation</h1>
+
       <textarea
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-        style={{ width: "100%", height: 140 }}
-        placeholder="Type script..."
+        placeholder="A boy playing football..."
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        style={{
+          width: "100%",
+          height: "150px",
+          padding: "15px",
+          borderRadius: "8px",
+          fontSize: "18px",
+          outline: "none"
+        }}
       />
 
-      <div style={{ marginTop: 16 }}>
-        <button onClick={generate} disabled={loading} style={{ padding: "10px 18px" }}>
-          {loading ? "Generating..." : "Generate"}
-        </button>
-      </div>
+      <button
+        onClick={handleGenerate}
+        disabled={loading}
+        style={{
+          marginTop: "20px",
+          padding: "12px 25px",
+          background: "#00C2FF",
+          color: "#000",
+          borderRadius: "8px",
+          fontWeight: "600",
+          cursor: "pointer"
+        }}
+      >
+        {loading ? "Generating..." : "Generate"}
+      </button>
 
-      {scenes.length > 0 && (
-        <div style={{ marginTop: 20 }}>
-          <h3>Scenes</h3>
-          <ol>
-            {scenes.map((s, i) => (<li key={i}>{s}</li>))}
-          </ol>
-        </div>
-      )}
-
-      {videoURL && (
-        <div style={{ marginTop: 20 }}>
-          <h3>Video</h3>
-          <video controls style={{ width: "100%" }}>
-            <source src={videoURL} type="video/mp4" />
-          </video>
-          <a href={videoURL} download style={{ display: "block", marginTop: 8 }}>
-            Download
-          </a>
+      {result && (
+        <div style={{ marginTop: "30px", background: "#fff2", padding: "20px", borderRadius: "8px" }}>
+          <pre>{JSON.stringify(result, null, 2)}</pre>
         </div>
       )}
     </div>
