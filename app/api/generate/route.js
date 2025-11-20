@@ -2,11 +2,32 @@ export async function POST(req) {
   try {
     const { prompt } = await req.json();
 
-    const res = await fetch("https://animexa-worker.palgaurav085.workers.dev/", {
+    if (!prompt) {
+      return Response.json({ error: "Prompt is required" }, { status: 400 });
+    }
+
+    const WORKER_URL = "https://animexa-worker.palgaurav085.workers.dev/";
+
+    const res = await fetch(WORKER_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt })
+      body: JSON.stringify({ prompt }),
     });
+
+    // If worker returns non-JSON or error, handle safely
+    const contentType = res.headers.get("content-type") || "";
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      return Response.json({ error: "Worker error", detail: text }, { status: 502 });
+    }
+    if (!contentType.includes("application/json")) {
+      const text = await res.text();
+      try {
+        return Response.json(JSON.parse(text));
+      } catch (e) {
+        return Response.json({ error: "Invalid worker response", detail: text }, { status: 502 });
+      }
+    }
 
     const data = await res.json();
     return Response.json(data);
