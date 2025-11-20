@@ -5,15 +5,16 @@ export default function GeneratePage() {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [videoURL, setVideoURL] = useState(null);
+  const [scenes, setScenes] = useState([]);
 
   const generate = async () => {
     if (!prompt.trim()) {
-      alert("Please enter a script!");
+      alert("Please type script");
       return;
     }
-
     setLoading(true);
     setVideoURL(null);
+    setScenes([]);
 
     try {
       const res = await fetch("/api/generate", {
@@ -30,52 +31,53 @@ export default function GeneratePage() {
         return;
       }
 
-      setVideoURL(data.video);
-    } catch (err) {
-      alert("Failed: " + err.message);
-    }
+      // Ensure scenes is array
+      const s = Array.isArray(data.scenes) ? data.scenes : (data.scenes ? [data.scenes] : []);
+      setScenes(s);
 
-    setLoading(false);
+      // video may be string or object
+      const vid = typeof data.video === "string" ? data.video : (data.video?.url || null);
+      setVideoURL(vid);
+    } catch (err) {
+      alert("Network/Server failed: " + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div style={{ padding: "40px", maxWidth: "700px", margin: "auto" }}>
+    <div style={{ padding: 32, maxWidth: 800, margin: "auto" }}>
       <h1>Generate Animation Video</h1>
-
       <textarea
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
-        placeholder="Enter your animation script..."
-        style={{ width: "100%", height: "150px", padding: "10px" }}
+        style={{ width: "100%", height: 140 }}
+        placeholder="Type script..."
       />
 
-      <button
-        onClick={generate}
-        style={{
-          marginTop: "20px",
-          padding: "10px 20px",
-          background: "#0070f3",
-          color: "white",
-          border: "none",
-          cursor: "pointer",
-        }}
-      >
-        {loading ? "Generating..." : "Generate"}
-      </button>
+      <div style={{ marginTop: 16 }}>
+        <button onClick={generate} disabled={loading} style={{ padding: "10px 18px" }}>
+          {loading ? "Generating..." : "Generate"}
+        </button>
+      </div>
+
+      {scenes.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <h3>Scenes</h3>
+          <ol>
+            {scenes.map((s, i) => (<li key={i}>{s}</li>))}
+          </ol>
+        </div>
+      )}
 
       {videoURL && (
-        <div style={{ marginTop: "30px" }}>
-          <h3>Your Video</h3>
-          <video controls width="100%">
+        <div style={{ marginTop: 20 }}>
+          <h3>Video</h3>
+          <video controls style={{ width: "100%" }}>
             <source src={videoURL} type="video/mp4" />
           </video>
-
-          <a
-            href={videoURL}
-            download="animation.mp4"
-            style={{ display: "block", marginTop: "10px" }}
-          >
-            Download Video
+          <a href={videoURL} download style={{ display: "block", marginTop: 8 }}>
+            Download
           </a>
         </div>
       )}
