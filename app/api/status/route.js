@@ -1,53 +1,57 @@
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 export async function GET(req) {
   try {
-    const url = new URL(req.url);
-    const id = url.searchParams.get("id");
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
 
     if (!id) {
-      return new Response(JSON.stringify({ error: "Missing id" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" }
-      });
+      return Response.json({ error: "Missing prediction ID" }, { status: 400 });
     }
 
     const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
+    if (!REPLICATE_API_TOKEN) {
+      return Response.json(
+        { error: "Missing REPLICATE_API_TOKEN" },
+        { status: 500 }
+      );
+    }
 
-    const resp = await fetch(`https://api.replicate.com/v1/predictions/${id}`, {
-      headers: { Authorization: "Token " + REPLICATE_API_TOKEN }
-    });
+    // Fetch status from Replicate
+    const response = await fetch(
+      `https://api.replicate.com/v1/predictions/${id}`,
+      {
+        headers: {
+          Authorization: `Token ${REPLICATE_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
-    const data = await resp.json();
+    const result = await response.json();
 
-    if (data.error) {
-      return new Response(JSON.stringify({ error: data.error }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" }
+    if (result.error) {
+      return Response.json({ error: result.error }, { status: 500 });
+    }
+
+    // If completed, return the video URL
+    if (result.status === "succeeded") {
+      return Response.json({
+        status: "succeeded",
+        video_url: result.output?.video || null,
+        full_output: result.output || null,
       });
     }
 
-    let videoUrl = null;
-
-    if (data.status === "succeeded" && data.output) {
-      if (typeof data.output === "string") videoUrl = data.output;
-      if (Array.isArray(data.output)) videoUrl = data.output.find(o => typeof o === "string" && o.endsWith(".mp4"));
-      if (typeof data.output === "object") videoUrl = data.output.video;
-    }
-
-    return new Response(JSON.stringify({
-      id: data.id,
-      status: data.status,
-      video_url: videoUrl
-    }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" }
+    // Still processing
+    return Response.json({
+      status: result.status,
+      output: result.output || null,
     });
-
-  } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" }
-    });
+  } catch (error) {
+    return Response.json(
+      { error: error.message || "Something went wrong" },
+      { status: 500 }
+    );
   }
 }
