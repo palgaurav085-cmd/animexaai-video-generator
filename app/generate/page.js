@@ -1,86 +1,83 @@
 "use client";
-
 import { useState } from "react";
 
 export default function GeneratePage() {
-  const [script, setScript] = useState("");
+  const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
-  const [videoUrl, setVideoUrl] = useState(null);
+  const [videoURL, setVideoURL] = useState(null);
 
-  const generateVideo = async () => {
+  const generate = async () => {
+    if (!prompt.trim()) {
+      alert("Please enter a script!");
+      return;
+    }
+
     setLoading(true);
-    setVideoUrl(null);
+    setVideoURL(null);
 
-    // Start generation
-    const start = await fetch("/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt: script })
-    });
-
-    const { id } = await start.json();
-
-    let finished = false;
-    let output = null;
-
-    while (!finished) {
-      await new Promise(r => setTimeout(r, 2000));
-
-      const check = await fetch("/api/check", {
+    try {
+      const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id })
+        body: JSON.stringify({ prompt }),
       });
 
-      const result = await check.json();
+      const data = await res.json();
 
-      if (result.status === "succeeded") {
-        finished = true;
-        output = result.output?.[0];
+      if (data.error) {
+        alert("Server Error: " + data.error);
+        setLoading(false);
+        return;
       }
 
-      if (result.status === "failed") {
-        finished = true;
-        output = null;
-      }
+      setVideoURL(data.video);
+    } catch (err) {
+      alert("Failed: " + err.message);
     }
 
     setLoading(false);
-    setVideoUrl(output);
   };
 
   return (
-    <div style={{ padding: "40px", maxWidth: "800px", margin: "auto" }}>
+    <div style={{ padding: "40px", maxWidth: "700px", margin: "auto" }}>
       <h1>Generate Animation Video</h1>
 
       <textarea
-        placeholder="Paste your script here..."
-        value={script}
-        onChange={(e) => setScript(e.target.value)}
-        style={{ width: "100%", height: 150, padding: 10 }}
+        value={prompt}
+        onChange={(e) => setPrompt(e.target.value)}
+        placeholder="Enter your animation script..."
+        style={{ width: "100%", height: "150px", padding: "10px" }}
       />
 
       <button
-        onClick={generateVideo}
-        disabled={loading}
+        onClick={generate}
         style={{
-          marginTop: 20,
-          padding: "12px 25px",
+          marginTop: "20px",
+          padding: "10px 20px",
           background: "#0070f3",
           color: "white",
-          borderRadius: 8
+          border: "none",
+          cursor: "pointer",
         }}
       >
-        {loading ? "Generating..." : "Generate Video"}
+        {loading ? "Generating..." : "Generate"}
       </button>
 
-      {videoUrl && (
-        <video
-          src={videoUrl}
-          controls
-          autoPlay
-          style={{ marginTop: 30, width: "100%", borderRadius: 10 }}
-        ></video>
+      {videoURL && (
+        <div style={{ marginTop: "30px" }}>
+          <h3>Your Video</h3>
+          <video controls width="100%">
+            <source src={videoURL} type="video/mp4" />
+          </video>
+
+          <a
+            href={videoURL}
+            download="animation.mp4"
+            style={{ display: "block", marginTop: "10px" }}
+          >
+            Download Video
+          </a>
+        </div>
       )}
     </div>
   );
