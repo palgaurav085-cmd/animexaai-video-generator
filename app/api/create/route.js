@@ -5,10 +5,7 @@ export async function POST(req) {
     const { prompt } = await req.json();
 
     if (!prompt) {
-      return Response.json(
-        { error: "Prompt is required" },
-        { status: 400 }
-      );
+      return Response.json({ error: "Prompt is required" }, { status: 400 });
     }
 
     const token = process.env.REPLICATE_API_TOKEN;
@@ -20,11 +17,10 @@ export async function POST(req) {
       );
     }
 
-    // 👇 Correct model version for Flux Video
+    // 👉 PUBLIC, FREE, WORKING MODEL (Stable Video Diffusion)
     const version =
-      "8093e1fc5c3c4fb2ba23e0878287f337607ec650f1151e81bcf08df07b0be4fc";
+      "c2e749ecc630bb1e3ceaa8a6cec1e8152ef749398a422a2f51ac9e8d5f87b6e1";
 
-    // 1️⃣ Create prediction
     const createRes = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
@@ -35,8 +31,9 @@ export async function POST(req) {
         version,
         input: {
           prompt,
-          fps: 24,
-          num_frames: 96,
+          motion_bucket_id: 127,
+          fps: 6,
+          augmentation_level: 0.5,
         },
       }),
     });
@@ -52,9 +49,6 @@ export async function POST(req) {
 
     return Response.json({ id: prediction.id });
   } catch (err) {
-    return Response.json(
-      { error: err.message },
-      { status: 500 }
-    );
+    return Response.json({ error: err.message }, { status: 500 });
   }
 }
