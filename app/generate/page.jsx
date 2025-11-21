@@ -1,88 +1,119 @@
-// paste/replace the generate function with this (complete robust version)
+"use client";
 
-const [pollRef, setPollRef] = useState(null);
+import { useState, useEffect } from "react";
 
-const startGeneration = async () => {
-  setError("");
-  setVideoUrl("");
-  setStatus("creating");
+export default function GeneratePage() {
+  const [prompt, setPrompt] = useState("");
+  const [status, setStatus] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [error, setError] = useState("");
 
-  try {
-    const res = await fetch("/api/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, scenes: [prompt] }),
-    });
+  const [pollRef, setPollRef] = useState(null);
 
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error("Create API Error: " + text);
-    }
+  const startGeneration = async () => {
+    setError("");
+    setVideoUrl("");
+    setStatus("creating");
 
-    const data = await res.json();
-    const id = data?.id;
+    try {
+      const res = await fetch("/api/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, scenes: [prompt] }),
+      });
 
-    if (!id) {
-      throw new Error("No prediction id returned from /api/create");
-    }
-
-    setStatus("processing");
-
-    // clear existing poll if any
-    if (pollRef) {
-      clearInterval(pollRef);
-      setPollRef(null);
-    }
-
-    // start polling every 2.5s and save interval id so we can clear later
-    const interval = setInterval(async () => {
-      try {
-        const statusRes = await fetch(`/api/status?id=${encodeURIComponent(id)}`);
-        if (!statusRes.ok) {
-          // handle non-json / non-200 gracefully
-          const txt = await statusRes.text();
-          console.error("Status endpoint returned non-OK:", txt);
-          return;
-        }
-        const statusJson = await statusRes.json();
-
-        console.log("poll:", id, statusJson);
-
-        if (statusJson.status === "succeeded") {
-          clearInterval(interval);
-          setPollRef(null);
-          setVideoUrl(statusJson.video_url || (statusJson.output && statusJson.output.video) || null);
-          setStatus("done");
-        } else if (statusJson.status === "failed" || statusJson.status === "canceled") {
-          clearInterval(interval);
-          setPollRef(null);
-          setError("Generation failed: " + (statusJson.error || statusJson.status));
-          setStatus("");
-        } // else still processing, continue polling
-
-      } catch (pollErr) {
-        console.error("Polling error:", pollErr);
-        clearInterval(interval);
-        setPollRef(null);
-        setError("Polling failed: " + pollErr.message);
-        setStatus("");
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error("Create API Error: " + text);
       }
-    }, 2500);
 
-    setPollRef(interval);
+      const data = await res.json();
+      const id = data?.id;
 
-  } catch (err) {
-    console.error(err);
-    setError(err.message || "Something went wrong");
-    setStatus("");
-  }
-};
+      if (!id) {
+        throw new Error("No prediction id returned from /api/create");
+      }
 
-// also clear on unmount
-useEffect(() => {
-  return () => {
-    if (pollRef) {
-      clearInterval(pollRef);
+      setStatus("processing");
+
+      // clear previous poller
+      if (pollRef) clearInterval(pollRef);
+
+      const interval = setInterval(async () => {
+        try {
+          const statusRes = await fetch(`/api/status?id=${id}`);
+          if (!statusRes.ok) return;
+
+          const statusJson = await statusRes.json();
+
+          if (statusJson.status === "succeeded") {
+            clearInterval(interval);
+            setPollRef(null);
+
+            setVideoUrl(
+              statusJson.video_url ||
+                statusJson?.output?.video ||
+                null
+            );
+
+            setStatus("done");
+          } else if (
+            statusJson.status === "failed" ||
+            statusJson.status === "canceled"
+          ) {
+            clearInterval(interval);
+            setPollRef(null);
+            setError("Generation failed");
+            setStatus("");
+          }
+        } catch (err) {
+          clearInterval(interval);
+          setPollRef(null);
+          setError("Polling error: " + err.message);
+          setStatus("");
+        }
+      }, 2500);
+
+      setPollRef(interval);
+    } catch (err) {
+      setError(err.message);
+      setStatus("");
     }
   };
-}, [pollRef]);
+
+  // clear poller on unmount
+  useEffect(() => {
+    return () => {
+      if (pollRef) clearInterval(pollRef);
+    };
+  }, [pollRef]);
+
+  return (
+    <div style={{ padding: "30px", maxWidth: "800px", margin: "auto" }}>
+      <h1>Generate Animation</h1>
+
+      <textarea
+        placeholder="Enter prompt..."
+        value={prompt}
+        onChange={(e) => setPrompt(e.target.value)}
+        style={{ width: "100%", height: "150px", marginBottom: "20px" }}
+      />
+
+      <button onClick={startGeneration}>Generate</button>
+
+      <p>Status: {status}</p>
+
+      {error && (
+        <div style={{ color: "red", marginTop: "20px" }}>
+          ❌ {error}
+        </div>
+      )}
+
+      {videoUrl && (
+        <video controls style={{ marginTop: "20px", width: "100%" }}>
+          <source src={videoUrl} />
+        </video>
+      )}
+    </div>
+  );
+}
