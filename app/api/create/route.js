@@ -5,22 +5,21 @@ export async function POST(req) {
     const { prompt } = await req.json();
 
     if (!prompt) {
-      return Response.json({ error: "Prompt is missing" }, { status: 400 });
+      return Response.json({ error: "Missing prompt" }, { status: 400 });
     }
 
     const replicate = new Replicate({
       auth: process.env.REPLICATE_API_TOKEN,
     });
 
-    // WORKING MODEL + VERSION
     const prediction = await replicate.predictions.create({
-      model: "zsxkib/animatediff-lightning",
-      version: "e241f65848e31398c123c3fb485d7a69060670c8ca8a67c7ed2895f3ff8c8c5d",
+      model: "black-forest-labs/flux-dev",
       input: {
         prompt: prompt,
-        steps: 30,
         fps: 24,
-        num_frames: 32
+        duration: 4,
+        width: 512,
+        height: 512
       }
     });
 
@@ -32,7 +31,6 @@ export async function POST(req) {
     }
 
     return Response.json({ id: prediction.id }, { status: 200 });
-
   } catch (err) {
     return Response.json(
       { error: "Create API Error", raw: err.message },
