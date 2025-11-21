@@ -12,13 +12,15 @@ export async function POST(req) {
       auth: process.env.REPLICATE_API_TOKEN,
     });
 
-    // Correct model + version
+    // WORKING MODEL + VERSION
     const prediction = await replicate.predictions.create({
-      model: "zubairkhan/animatediff-lightning",
-      version: "48ad11c4c0e143b7da1e3de3bc577f40297f6e6c2b943b7bf0530bb694ff2c55",
+      model: "zsxkib/animatediff-lightning",
+      version: "e241f65848e31398c123c3fb485d7a69060670c8ca8a67c7ed2895f3ff8c8c5d",
       input: {
         prompt: prompt,
-        steps: 30
+        steps: 30,
+        fps: 24,
+        num_frames: 32
       }
     });
 
