@@ -1,4 +1,4 @@
-export const runtime = "nodejs";
+import Replicate from "replicate";
 
 export async function GET(req) {
   try {
@@ -9,48 +9,17 @@ export async function GET(req) {
       return Response.json({ error: "Missing prediction ID" }, { status: 400 });
     }
 
-    const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
-    if (!REPLICATE_API_TOKEN) {
-      return Response.json(
-        { error: "Missing REPLICATE_API_TOKEN" },
-        { status: 500 }
-      );
-    }
-
-    // Fetch status from Replicate
-    const response = await fetch(
-      `https://api.replicate.com/v1/predictions/${id}`,
-      {
-        headers: {
-          Authorization: `Token ${REPLICATE_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    const result = await response.json();
-
-    if (result.error) {
-      return Response.json({ error: result.error }, { status: 500 });
-    }
-
-    // If completed, return the video URL
-    if (result.status === "succeeded") {
-      return Response.json({
-        status: "succeeded",
-        video_url: result.output?.video || null,
-        full_output: result.output || null,
-      });
-    }
-
-    // Still processing
-    return Response.json({
-      status: result.status,
-      output: result.output || null,
+    const replicate = new Replicate({
+      auth: process.env.REPLICATE_API_TOKEN,
     });
-  } catch (error) {
+
+    const prediction = await replicate.predictions.get(id);
+
+    return Response.json(prediction, { status: 200 });
+
+  } catch (err) {
     return Response.json(
-      { error: error.message || "Something went wrong" },
+      { error: "Status API Error", raw: err.message },
       { status: 500 }
     );
   }
