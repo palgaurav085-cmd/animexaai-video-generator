@@ -11,13 +11,10 @@ export async function POST(req) {
     const token = process.env.REPLICATE_API_TOKEN;
 
     if (!token) {
-      return Response.json(
-        { error: "Missing REPLICATE_API_TOKEN" },
-        { status: 500 }
-      );
+      return Response.json({ error: "Missing REPLICATE_API_TOKEN" }, { status: 500 });
     }
 
-    // 👉 PUBLIC, FREE, WORKING MODEL (Stable Video Diffusion)
+    // ⭐ PUBLIC, FREE, WORKING MODEL VERSION (Stable Video Diffusion)
     const version =
       "c2e749ecc630bb1e3ceaa8a6cec1e8152ef749398a422a2f51ac9e8d5f87b6e1";
 
@@ -48,6 +45,7 @@ export async function POST(req) {
     }
 
     return Response.json({ id: prediction.id });
+
   } catch (err) {
     return Response.json({ error: err.message }, { status: 500 });
   }
