@@ -1,118 +1,87 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export default function GeneratePage() {
   const [prompt, setPrompt] = useState("");
   const [status, setStatus] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
-  const [error, setError] = useState("");
 
-  const [pollRef, setPollRef] = useState(null);
-
-  const startGeneration = async () => {
-    setError("");
+  async function handleGenerate() {
+    setStatus("creating...");
     setVideoUrl("");
-    setStatus("creating");
 
     try {
-      const res = await fetch("/api/create", {
+      // 1️⃣ CREATE
+      const createRes = await fetch("/api/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, scenes: [prompt] }),
+        body: JSON.stringify({ prompt }),
       });
 
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error("Create API Error: " + text);
+      const createData = await createRes.json();
+
+      if (!createData.id) {
+        setStatus("Create Error: " + JSON.stringify(createData));
+        return;
       }
 
-      const data = await res.json();
-      const id = data?.id;
+      const predictionId = createData.id;
+      setStatus("processing...");
 
-      if (!id) {
-        throw new Error("No prediction id returned from /api/create");
-      }
+      // 2️⃣ POLL STATUS
+      let finalVideo = null;
 
-      setStatus("processing");
+      while (true) {
+        const statusRes = await fetch(`/api/status?id=${predictionId}`);
+        const statusData = await statusRes.json();
 
-      // clear previous poller
-      if (pollRef) clearInterval(pollRef);
-
-      const interval = setInterval(async () => {
-        try {
-          const statusRes = await fetch(`/api/status?id=${id}`);
-          if (!statusRes.ok) return;
-
-          const statusJson = await statusRes.json();
-
-          if (statusJson.status === "succeeded") {
-            clearInterval(interval);
-            setPollRef(null);
-
-            setVideoUrl(
-              statusJson.video_url ||
-                statusJson?.output?.video ||
-                null
-            );
-
-            setStatus("done");
-          } else if (
-            statusJson.status === "failed" ||
-            statusJson.status === "canceled"
-          ) {
-            clearInterval(interval);
-            setPollRef(null);
-            setError("Generation failed");
-            setStatus("");
-          }
-        } catch (err) {
-          clearInterval(interval);
-          setPollRef(null);
-          setError("Polling error: " + err.message);
-          setStatus("");
+        if (statusData.output && statusData.output.video) {
+          finalVideo = statusData.output.video;
         }
-      }, 2500);
 
-      setPollRef(interval);
+        if (statusData.status === "succeeded") break;
+        if (statusData.status === "failed") {
+          setStatus("failed");
+          return;
+        }
+
+        await new Promise((res) => setTimeout(res, 3000));
+      }
+
+      // 3️⃣ DISPLAY RESULT
+      setStatus("done");
+      if (finalVideo) setVideoUrl(finalVideo);
+
     } catch (err) {
-      setError(err.message);
-      setStatus("");
+      setStatus("Error: " + err.message);
     }
-  };
-
-  // clear poller on unmount
-  useEffect(() => {
-    return () => {
-      if (pollRef) clearInterval(pollRef);
-    };
-  }, [pollRef]);
+  }
 
   return (
-    <div style={{ padding: "30px", maxWidth: "800px", margin: "auto" }}>
+    <div style={{ maxWidth: "700px", margin: "20px auto" }}>
       <h1>Generate Animation</h1>
 
       <textarea
-        placeholder="Enter prompt..."
+        rows="6"
+        style={{ width: "100%" }}
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
-        style={{ width: "100%", height: "150px", marginBottom: "20px" }}
+        placeholder="Enter your animation prompt..."
       />
 
-      <button onClick={startGeneration}>Generate</button>
+      <br /><br />
 
-      <p>Status: {status}</p>
+      <button onClick={handleGenerate}>Generate</button>
 
-      {error && (
-        <div style={{ color: "red", marginTop: "20px" }}>
-          ❌ {error}
-        </div>
-      )}
+      <h3>Status: {status}</h3>
 
       {videoUrl && (
-        <video controls style={{ marginTop: "20px", width: "100%" }}>
-          <source src={videoUrl} />
-        </video>
+        <div>
+          <h3>Result:</h3>
+          <video src={videoUrl} controls width="100%" />
+          <p><a href={videoUrl} target="_blank">Download Video</a></p>
+        </div>
       )}
     </div>
   );
